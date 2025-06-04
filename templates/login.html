@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link 
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" 
+      rel="stylesheet" />
+    <style>
+        body {
+            background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .login-box {
+            background: white;
+            padding: 30px 35px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.15);
+            width: 320px;
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 25px;
+            font-weight: 700;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <h2>Login Panel</h2>
+
+        {% if message %}
+            <div class="alert alert-danger">{{ message }}</div>
+        {% endif %}
+
+        <form method="POST" action="/admin/login" id="adminForm">
+            <h5>Admin Login</h5>
+            <div class="mb-3">
+                <input type="text" name="username" placeholder="Admin Username" class="form-control" required />
+            </div>
+            <div class="mb-3">
+                <input type="password" name="password" placeholder="Admin Password" class="form-control" required />
+            </div>
+            <button type="submit" class="btn btn-primary w-100 mb-3">Login as Admin</button>
+        </form>
+
+        <form method="POST" action="/seller/login" id="sellerForm">
+            <h5>Seller Login</h5>
+            <div class="mb-3">
+                <input type="text" name="username" placeholder="Seller Username" class="form-control" required />
+            </div>
+            <div class="mb-3">
+                <input type="password" name="password" placeholder="Seller Password" class="form-control" required />
+            </div>
+            <button type="submit" class="btn btn-success w-100 mb-3">Login as Seller</button>
+        </form>
+
+        <form method="POST" action="/user" id="userForm">
+            <h5>User Login (License Key)</h5>
+            <div class="mb-3">
+                <input type="text" name="license_key" placeholder="Enter License Key" class="form-control" required />
+            </div>
+            <button type="submit" class="btn btn-info w-100">Login as User</button>
+        </form>
+    </div>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Seller Panel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link 
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" 
+      rel="stylesheet" />
+    <style>
+        body {
+            background-color: #e9f0ff;
+        }
+        .panel {
+            max-width: 700px;
+            margin: auto;
+            margin-top: 30px;
+            padding: 25px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .license-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f0f4ff;
+            padding: 12px 18px;
+            margin-bottom: 12px;
+            border-radius: 10px;
+        }
+        .license-key {
+            font-weight: 600;
+            font-family: monospace;
+            letter-spacing: 2px;
+        }
+        .btn-group button {
+            margin-left: 5px;
+        }
+        .search-box {
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="panel">
+        <h3 class="text-center mb-4">🛒 Seller Panel</h3>
+
+        {% if message %}
+            <div class="alert alert-warning">{{ message }}</div>
+        {% endif %}
+
+        <form method="POST" action="/seller/create_license" class="mb-3">
+            <div class="mb-3">
+                <label for="license_key" class="form-label">Enter License Key</label>
+                <input type="text" name="license_key" id="license_key" class="form-control" placeholder="e.g. ASHOK353" required pattern="[A-Za-z0-9]{4,20}" title="4-20 characters, letters and numbers only" />
+            </div>
+            <button type="submit" class="btn btn-success w-100">Create New License</button>
+        </form>
+
+        <input type="text" id="searchInput" placeholder="Search License Key" class="form-control search-box" onkeyup="filterLicenses()" />
+
+        {% if licenses|length == 0 %}
+            <p class="text-center text-muted">No licenses created yet.</p>
+        {% else %}
+            {% for lic in licenses %}
+            <div class="license-card" data-key="{{ lic.key }}">
+                <div class="license-key">{{ lic.key }}</div>
+                <div class="btn-group">
+                    <a href="/seller/delete_license/{{ lic.key }}" class="btn btn-danger btn-sm">Delete</a>
+                    <a href="/seller/reset_license/{{ lic.key }}" class="btn btn-warning btn-sm">Reset</a>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+
+        <a href="{{ url_for('logout') }}" class="btn btn-secondary mt-4 w-100">Logout</a>
+        <a href="{{ url_for('home') }}" class="btn btn-primary mt-2 w-100">Go to User Login</a>
+    </div>
+
+<script>
+function filterLicenses() {
+    let input = document.getElementById('searchInput');
+    let filter = input.value.toUpperCase();
+    let licenses = document.querySelectorAll('.license-card');
+
+    licenses.forEach(function(card) {
+        let key = card.getAttribute('data-key');
+        if (key.toUpperCase().indexOf(filter) > -1) {
+            card.style.display = "";
+        } else {
+            card.style.display = "none";
+        }
+    });
+}
+</script>
+
+</body>
+</html>

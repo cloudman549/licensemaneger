@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Admin Panel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link 
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" 
+      rel="stylesheet" />
+    <style>
+        body {
+            background-color: #f2f2f2;
+        }
+        .panel {
+            max-width: 600px;
+            margin: auto;
+            margin-top: 30px;
+            padding: 25px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+        }
+        .seller-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+        }
+        .seller-card span {
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="panel">
+        <h3 class="text-center mb-4">👑 Admin Panel</h3>
+
+        {% if message %}
+            <div class="alert alert-info">{{ message }}</div>
+        {% endif %}
+
+        <form method="POST" action="/admin/create_seller">
+            <div class="mb-3">
+                <label class="form-label">Seller Username</label>
+                <input type="text" name="username" class="form-control" required />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Seller Password</label>
+                <input type="text" name="password" class="form-control" required />
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Create Seller</button>
+        </form>
+
+        <hr />
+
+        <h5 class="text-center mt-4 mb-3">🧑‍💼 Existing Sellers</h5>
+        {% for seller in sellers %}
+        <div class="seller-card">
+            <span>{{ seller.username }} {% if not seller.active %}<small class="text-danger">(Deactivated)</small>{% endif %}</span>
+            <div>
+                {% if seller.active %}
+                <a href="/admin/deactivate_seller/{{ seller.username }}" class="btn btn-warning btn-sm">Deactivate</a>
+                {% else %}
+                <a href="/admin/activate_seller/{{ seller.username }}" class="btn btn-success btn-sm">Activate</a>
+                {% endif %}
+                <a href="/admin/delete_seller/{{ seller.username }}" class="btn btn-danger btn-sm">Delete</a>
+            </div>
+        </div>
+        {% else %}
+        <p class="text-center text-muted">No sellers created yet.</p>
+        {% endfor %}
+    </div>
+</body>
+</html>

@@ -1,0 +1,26 @@
+/* Basic styling for all panels */
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+input, button {
+    outline: none;
+}
+
+button {
+    cursor: pointer;
+}
+
+.alert {
+    margin-top: 15px;
+}
+
+/* Responsive tweaks */
+
+@media (max-width: 768px) {
+    .panel {
+        margin: 15px;
+        padding: 20px;
+    }
+}
