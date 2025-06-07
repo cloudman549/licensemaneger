@@ -26,6 +26,30 @@
         }
         .btn-reset {
             margin-top: 25px;
+            position: relative;
+            background: linear-gradient(45deg, #ffc107, #ff9800);
+            border: none;
+            color: white;
+            transition: all 0.3s ease-in-out;
+        }
+        .btn-reset:hover {
+            background: linear-gradient(45deg, #ff9800, #e65100);
+            color: white;
+            transform: scale(1.02);
+        }
+        .spinner-border {
+            width: 1.2rem;
+            height: 1.2rem;
+            border-width: 0.2em;
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: none;
+            color: white;
+        }
+        .btn-loading .spinner-border {
+            display: inline-block;
         }
     </style>
 </head>
@@ -37,13 +61,40 @@
             <div class="alert alert-success">{{ message }}</div>
         {% endif %}
 
-        <p>Your license is active and bound to this device.</p>
+        <div class="mb-3">
+            <strong>License Key:</strong>
+            <div class="text-primary">{{ license_key }}</div>
+        </div>
 
-        <form action="/user/reset">
-            <button type="submit" class="btn btn-warning btn-reset">Reset License</button>
+        <div class="mb-4">
+            <strong>Expiry Days Left:</strong>
+            <div class="text-success">{{ days_left }} day{{ days_left != 1 and 's' or '' }}</div>
+        </div>
+
+        <div class="text-primary mb-3">
+            APNE SELLER SE CONTACT KARE KEY RENEW YA KISI BHI PROBLEM KO THIK KARWANE KE LIYE
+        </div>
+
+        <form action="/user/reset" id="resetForm">
+            <button type="submit" class="btn btn-reset w-100" id="resetBtn">
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                <span>Reset License</span>
+            </button>
         </form>
 
         <a href="/logout" class="btn btn-secondary mt-4 w-100">Logout</a>
+        <a href="/seller" class="btn btn-outline-primary btn-sm mt-3">Go to Seller Panel</a>
+
     </div>
+
+    <script>
+        const form = document.getElementById('resetForm');
+        const btn = document.getElementById('resetBtn');
+
+        form.addEventListener('submit', function () {
+            btn.classList.add('btn-loading');
+            btn.setAttribute('disabled', 'disabled');
+        });
+    </script>
 </body>
 </html>

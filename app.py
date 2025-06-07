@@ -1,36 +1,47 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
-import json
-import uuid
-import datetime
-import os
+from pymongo import MongoClient
+from datetime import datetime, timedelta
 import getmac
 
 app = Flask(__name__)
 app.secret_key = 'super_secret_key'
-DB_FILE = 'db.json'
 
-# ---------------------------- Helper Functions ----------------------------
-def load_db():
-    if not os.path.exists(DB_FILE):
-        with open(DB_FILE, 'w') as f:
-            json.dump({"sellers": [], "licenses": []}, f)
-    with open(DB_FILE, 'r') as f:
-        return json.load(f)
+# ------------------ MongoDB Setup ------------------
+client = MongoClient("mongodb+srv://cloudman549:cloudman%40100@cluster0.7s7qba2.mongodb.net/license_db?retryWrites=true&w=majority&appName=Cluster0")
+db = client["license_db"]
+sellers_col = db["sellers"]
+licenses_col = db["licenses"]
 
-def save_db(data):
-    with open(DB_FILE, 'w') as f:
-        json.dump(data, f, indent=4)
-
+# ------------------ Helper ------------------
 def get_mac_address():
     return getmac.get_mac_address()
 
-# ----------------------------- Routes -------------------------------------
+def auto_delete_expired_licenses():
+    now = datetime.now()
+    all_licenses = list(licenses_col.find())
+    for lic in all_licenses:
+        if not lic.get("paid"):
+            created_at = lic.get("created_at")
+            if created_at and (now - created_at).total_seconds() > 86400:
+                licenses_col.delete_one({"key": lic["key"]})
+        else:
+            expiry = lic.get("expiry")
+            if expiry:
+                expiry_date = datetime.strptime(expiry, '%Y-%m-%d')
+                if (now - expiry_date).days > 2:
+                    licenses_col.delete_one({"key": lic["key"]})
+
+@app.before_request
+def before_request():
+    auto_delete_expired_licenses()
+
+# ------------------ Routes ------------------
 
 @app.route('/')
 def home():
     return render_template("login.html")
 
-# ----------------------------- Admin Login -----------------------------
+# ------------------ Admin ------------------
 
 @app.route('/admin/login', methods=['POST'])
 def admin_login():
@@ -39,15 +50,24 @@ def admin_login():
     if username == "QWEN456" and password == "QWEN456":
         session['admin'] = True
         return redirect('/admin')
-    else:
-        return render_template("login.html", message="Invalid Admin Credentials")
+    return render_template("login.html", message="Invalid Admin Credentials")
 
 @app.route('/admin')
 def admin_panel():
     if not session.get('admin'):
         return redirect('/')
-    db = load_db()
-    return render_template("admin_panel.html", sellers=db['sellers'])
+    sellers = list(sellers_col.find())
+    seller_stats = {}
+    for s in sellers:
+        keys = list(licenses_col.find({"seller": s["username"]}))
+        paid = len([k for k in keys if k.get("paid")])
+        unpaid = len([k for k in keys if not k.get("paid")])
+        seller_stats[s["username"]] = {
+            "total": len(keys),
+            "paid": paid,
+            "unpaid": unpaid
+        }
+    return render_template("admin_panel.html", sellers=sellers, seller_stats=seller_stats)
 
 @app.route('/admin/create_seller', methods=['POST'])
 def create_seller():
@@ -55,202 +75,155 @@ def create_seller():
         return redirect('/')
     username = request.form['username']
     password = request.form['password']
-    db = load_db()
-    for seller in db['sellers']:
-        if seller['username'] == username:
-            return render_template("admin_panel.html", sellers=db['sellers'], message="Seller already exists")
-    db['sellers'].append({"username": username, "password": password, "active": True})
-    save_db(db)
-    return render_template("admin_panel.html", sellers=db['sellers'], message="Seller created successfully")
+    if sellers_col.find_one({"username": username}):
+        return redirect('/admin?message=Seller already exists')
+    sellers_col.insert_one({"username": username, "password": password, "active": True})
+    return redirect('/admin?message=Seller created successfully')
 
 @app.route('/admin/delete_seller/<username>')
 def delete_seller(username):
     if not session.get('admin'):
         return redirect('/')
-    db = load_db()
-    db['sellers'] = [s for s in db['sellers'] if s['username'] != username]
-    save_db(db)
+    sellers_col.delete_one({"username": username})
     return redirect('/admin')
 
 @app.route('/admin/deactivate_seller/<username>')
 def deactivate_seller(username):
     if not session.get('admin'):
         return redirect('/')
-    db = load_db()
-    for s in db['sellers']:
-        if s['username'] == username:
-            s['active'] = False
-    save_db(db)
+    sellers_col.update_one({"username": username}, {"$set": {"active": False}})
     return redirect('/admin')
 
 @app.route('/admin/activate_seller/<username>')
 def activate_seller(username):
     if not session.get('admin'):
         return redirect('/')
-    db = load_db()
-    for s in db['sellers']:
-        if s['username'] == username:
-            s['active'] = True
-    save_db(db)
+    sellers_col.update_one({"username": username}, {"$set": {"active": True}})
     return redirect('/admin')
 
-# --------------------------- Seller Panel ----------------------------
+# ------------------ Seller Panel ------------------
 
 @app.route('/seller/login', methods=['POST'])
 def seller_login():
     username = request.form['username']
     password = request.form['password']
-    db = load_db()
-    for seller in db['sellers']:
-        if seller['username'] == username and seller['password'] == password and seller['active']:
-            session['seller'] = username
-            return redirect('/seller')
+    seller = sellers_col.find_one({"username": username, "password": password, "active": True})
+    if seller:
+        session['seller'] = username
+        return redirect('/seller')
     return render_template("login.html", message="Invalid seller credentials or deactivated.")
 
 @app.route('/seller')
 def seller_panel():
     if not session.get('seller'):
         return redirect('/')
-    db = load_db()
-    licenses = [lic for lic in db['licenses'] if lic['seller'] == session['seller']]
+    licenses = list(licenses_col.find({"seller": session['seller']}))
     message = request.args.get('message')
-    return render_template("seller_panel.html", licenses=licenses, message=message)
+    now = datetime.now()
+    return render_template("seller_panel.html", licenses=licenses, message=message, now=now)
 
 @app.route('/seller/create_license', methods=['POST'])
 def create_license():
     if not session.get('seller'):
         return redirect('/')
-
     requested_key = request.form.get('license_key', '').strip().upper()
-
-    if not requested_key:
-        db = load_db()
-        licenses = [lic for lic in db['licenses'] if lic['seller'] == session['seller']]
-        return render_template("seller_panel.html", licenses=licenses, message="Please enter a license key.")
-
-    db = load_db()
-
-    for lic in db['licenses']:
-        if lic['key'] == requested_key:
-            licenses = [lic for lic in db['licenses'] if lic['seller'] == session['seller']]
-            return render_template("seller_panel.html", licenses=licenses, message=f"License key '{requested_key}' already exists. Please choose another.")
-
-    mac = ""
-    expiry = (datetime.datetime.now() + datetime.timedelta(days=30)).strftime('%Y-%m-%d')
-    db['licenses'].append({
+    if not requested_key or licenses_col.find_one({"key": requested_key}):
+        return redirect('/seller?message=License key already exists or empty.')
+    expiry = (datetime.now() + timedelta(days=30)).strftime('%Y-%m-%d')
+    licenses_col.insert_one({
         "key": requested_key,
         "seller": session['seller'],
-        "mac": mac,
+        "mac": "",
         "expiry": expiry,
         "active": True,
-        "plan": "Basic"
+        "plan": "Basic",
+        "paid": False,
+        "created_at": datetime.now()
     })
-    save_db(db)
-    return redirect(url_for('seller_panel'))
+    return redirect('/seller')
 
 @app.route('/seller/delete_license/<key>')
 def delete_license(key):
     if not session.get('seller'):
         return redirect('/')
-    db = load_db()
-    db['licenses'] = [l for l in db['licenses'] if l['key'] != key]
-    save_db(db)
+    licenses_col.delete_one({"key": key})
     return redirect('/seller')
 
 @app.route('/seller/reset_license/<key>')
 def reset_license(key):
     if not session.get('seller'):
         return redirect('/')
-    db = load_db()
-    for l in db['licenses']:
-        if l['key'] == key:
-            l['mac'] = ""
-    save_db(db)
+    licenses_col.update_one({"key": key}, {"$set": {"mac": ""}})
+    return redirect('/seller?message=License reset successfully.')
+
+@app.route('/seller/mark_paid/<key>')
+def mark_license_paid(key):
+    if not session.get('seller'):
+        return redirect('/')
+    licenses_col.update_one({"key": key}, {"$set": {"paid": True}})
     return redirect('/seller')
 
-# --------------------------- User Panel ----------------------------
+@app.route('/seller/renew_license/<key>')
+def renew_license(key):
+    if not session.get('seller'):
+        return redirect('/')
+    new_expiry = (datetime.now() + timedelta(days=30)).strftime('%Y-%m-%d')
+    licenses_col.update_one({"key": key}, {"$set": {"expiry": new_expiry}})
+    return redirect('/seller')
+
+# ------------------ User Panel ------------------
 
 @app.route('/user', methods=['POST'])
 def user_login():
     key = request.form['license_key']
     mac = get_mac_address()
-    db = load_db()
-    for lic in db['licenses']:
-        if lic['key'] == key and lic['active']:
-            if lic['mac'] == "" or lic['mac'] == mac:
-                lic['mac'] = mac
-                save_db(db)
-                session['user'] = key
-                return redirect('/user/dashboard')
-            else:
-                return render_template("login.html", message="License is already bound to another device.")
-    return render_template("login.html", message="Invalid license key.")
+    lic = licenses_col.find_one({"key": key, "active": True})
+    if lic:
+        session['user'] = key
+        return redirect('/user/dashboard')
+    return render_template("login.html", message="Invalid license key or deactivated.")
 
 @app.route('/user/dashboard')
 def user_dashboard():
     if not session.get('user'):
         return redirect('/')
-    return render_template("user_panel.html")
+    message = request.args.get('message')
+    lic = licenses_col.find_one({"key": session['user']})
+    if lic:
+        expiry_date = datetime.strptime(lic["expiry"], '%Y-%m-%d')
+        days_left = (expiry_date - datetime.now()).days
+        return render_template("user_panel.html", message=message, license_key=lic['key'], days_left=days_left)
+    return render_template("user_panel.html", message=message)
 
 @app.route('/user/reset')
 def user_reset():
     if not session.get('user'):
         return redirect('/')
-    key = session['user']
-    db = load_db()
-    for l in db['licenses']:
-        if l['key'] == key:
-            l['mac'] = ""
-    save_db(db)
-    return render_template("user_panel.html", message="License reset successfully.")
+    licenses_col.update_one({"key": session['user']}, {"$set": {"mac": ""}})
+    return redirect('/user/dashboard?message=License reset successfully.')
 
-# ----------------------- Updated License Validation API -----------------------
+# ------------------ API ------------------
 
 @app.route('/validate_license', methods=['POST'])
 def validate_license():
     data = request.get_json()
-    license_key = data.get('UserName')       # Match extension input
-    mac_address = data.get('MacAddress')     # Match extension input
+    license_key = data.get('UserName')
+    mac_address = data.get('MacAddress')
+    lic = licenses_col.find_one({"key": license_key})
+    if not lic:
+        return jsonify({"success": False, "message": "License key not found"}), 404
+    if not lic["active"]:
+        return jsonify({"success": False, "message": "License is deactivated"}), 400
+    expiry_date = datetime.strptime(lic["expiry"], '%Y-%m-%d')
+    days_left = (expiry_date - datetime.now()).days
+    if days_left < 0:
+        return jsonify({"success": False, "message": "License expired"}), 400
+    if lic["mac"] == "" or lic["mac"] == mac_address:
+        licenses_col.update_one({"key": license_key}, {"$set": {"mac": mac_address}})
+        return jsonify({"success": True, "leftDays": days_left, "plan": lic.get("plan", "Basic")}), 200
+    return jsonify({"success": False, "message": "License bound to another device"}), 400
 
-    db = load_db()
-
-    for lic in db['licenses']:
-        if lic['key'] == license_key:
-            if not lic['active']:
-                return jsonify({
-                    "success": False,
-                    "message": "License is deactivated"
-                }), 400
-
-            expiry_date = datetime.datetime.strptime(lic['expiry'], '%Y-%m-%d')
-            days_left = (expiry_date - datetime.datetime.now()).days
-
-            if days_left < 0:
-                return jsonify({
-                    "success": False,
-                    "message": "License expired"
-                }), 400
-
-            if lic['mac'] == "" or lic['mac'] == mac_address:
-                lic['mac'] = mac_address
-                save_db(db)
-                return jsonify({
-                    "success": True,
-                    "leftDays": days_left,
-                    "plan": lic.get("plan", "Basic")
-                }), 200
-            else:
-                return jsonify({
-                    "success": False,
-                    "message": "License is bound to another device"
-                }), 400
-
-    return jsonify({
-        "success": False,
-        "message": "License key not found"
-    }), 404
-
-# ---------------------------- Logout ----------------------------
+# ------------------ Logout ------------------
 
 @app.route('/logout')
 def logout():
