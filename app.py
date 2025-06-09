@@ -36,13 +36,11 @@ def before_request():
     auto_delete_expired_licenses()
 
 # ------------------ Routes ------------------
-
 @app.route('/')
 def home():
     return render_template("login.html")
 
 # ------------------ Admin ------------------
-
 @app.route('/admin/login', methods=['POST'])
 def admin_login():
     username = request.form['username']
@@ -62,12 +60,16 @@ def admin_panel():
         keys = list(licenses_col.find({"seller": s["username"]}))
         paid = len([k for k in keys if k.get("paid")])
         unpaid = len([k for k in keys if not k.get("paid")])
+        accepted = s.get("accepted_due", 0)
+        due = max(paid - accepted, 0)
         seller_stats[s["username"]] = {
             "total": len(keys),
             "paid": paid,
-            "unpaid": unpaid
+            "unpaid": unpaid,
+            "due": due
         }
-    return render_template("admin_panel.html", sellers=sellers, seller_stats=seller_stats)
+    message = request.args.get("message")
+    return render_template("admin_panel.html", sellers=sellers, seller_stats=seller_stats, message=message)
 
 @app.route('/admin/create_seller', methods=['POST'])
 def create_seller():
@@ -77,7 +79,7 @@ def create_seller():
     password = request.form['password']
     if sellers_col.find_one({"username": username}):
         return redirect('/admin?message=Seller already exists')
-    sellers_col.insert_one({"username": username, "password": password, "active": True})
+    sellers_col.insert_one({"username": username, "password": password, "active": True, "accepted_due": 0})
     return redirect('/admin?message=Seller created successfully')
 
 @app.route('/admin/delete_seller/<username>')
@@ -85,14 +87,16 @@ def delete_seller(username):
     if not session.get('admin'):
         return redirect('/')
     sellers_col.delete_one({"username": username})
-    return redirect('/admin')
+    licenses_col.delete_many({"seller": username})
+    return redirect('/admin?message=Seller and licenses deleted')
 
 @app.route('/admin/deactivate_seller/<username>')
 def deactivate_seller(username):
     if not session.get('admin'):
         return redirect('/')
     sellers_col.update_one({"username": username}, {"$set": {"active": False}})
-    return redirect('/admin')
+    licenses_col.update_many({"seller": username}, {"$set": {"active": False}})
+    return redirect('/admin?message=Seller and keys deactivated')
 
 @app.route('/admin/activate_seller/<username>')
 def activate_seller(username):
@@ -101,8 +105,31 @@ def activate_seller(username):
     sellers_col.update_one({"username": username}, {"$set": {"active": True}})
     return redirect('/admin')
 
-# ------------------ Seller Panel ------------------
+@app.route('/admin/change_password/<username>', methods=['POST'])
+def change_seller_password(username):
+    if not session.get('admin'):
+        return redirect('/')
+    new_password = request.form.get('new_password')
+    sellers_col.update_one({"username": username}, {"$set": {"password": new_password}})
+    return redirect('/admin?message=Password updated')
 
+@app.route('/admin/accept_due/<username>', methods=['POST'])
+def accept_due(username):
+    if not session.get('admin'):
+        return redirect('/')
+    accepted_raw = request.form.get('accept_count')
+    if not accepted_raw or not accepted_raw.isdigit():
+        return redirect(f"/admin?message=Invalid due amount for {username}")
+    accepted_count = int(accepted_raw)
+    seller = sellers_col.find_one({"username": username})
+    current_accepted = seller.get("accepted_due", 0)
+    paid_keys = list(licenses_col.find({"seller": username, "paid": True}))
+    max_accept = len(paid_keys) - current_accepted
+    accepted_count = min(accepted_count, max_accept)
+    sellers_col.update_one({"username": username}, {"$inc": {"accepted_due": accepted_count}})
+    return redirect(f"/admin?message=Accepted {accepted_count} due(s) for {username}")
+
+# ------------------ Seller Panel ------------------
 @app.route('/seller/login', methods=['POST'])
 def seller_login():
     username = request.form['username']
@@ -117,10 +144,14 @@ def seller_login():
 def seller_panel():
     if not session.get('seller'):
         return redirect('/')
+    seller = sellers_col.find_one({"username": session['seller']})
+    accepted_due = seller.get("accepted_due", 0)
     licenses = list(licenses_col.find({"seller": session['seller']}))
+    paid = len([l for l in licenses if l.get("paid")])
+    tokens_due = max(paid - accepted_due, 0)
     message = request.args.get('message')
     now = datetime.now()
-    return render_template("seller_panel.html", licenses=licenses, message=message, now=now)
+    return render_template("seller_panel.html", licenses=licenses, message=message, now=now, tokens_due=tokens_due)
 
 @app.route('/seller/create_license', methods=['POST'])
 def create_license():
@@ -172,15 +203,20 @@ def renew_license(key):
     return redirect('/seller')
 
 # ------------------ User Panel ------------------
-
 @app.route('/user', methods=['POST'])
 def user_login():
     key = request.form['license_key']
     mac = get_mac_address()
     lic = licenses_col.find_one({"key": key, "active": True})
     if lic:
-        session['user'] = key
-        return redirect('/user/dashboard')
+        if not lic.get("paid"):
+            return render_template("login.html", message="License key is unpaid. Contact seller.")
+        if lic["mac"] == "" or lic["mac"] == mac:
+            licenses_col.update_one({"key": key}, {"$set": {"mac": mac}})
+            session['user'] = key
+            return redirect('/user/dashboard')
+        else:
+            return render_template("login.html", message="License bound to another device.")
     return render_template("login.html", message="Invalid license key or deactivated.")
 
 @app.route('/user/dashboard')
@@ -203,7 +239,6 @@ def user_reset():
     return redirect('/user/dashboard?message=License reset successfully.')
 
 # ------------------ API ------------------
-
 @app.route('/validate_license', methods=['POST'])
 def validate_license():
     data = request.get_json()
@@ -214,6 +249,8 @@ def validate_license():
         return jsonify({"success": False, "message": "License key not found"}), 404
     if not lic["active"]:
         return jsonify({"success": False, "message": "License is deactivated"}), 400
+    if not lic["paid"]:
+        return jsonify({"success": False, "message": "License is unpaid"}), 400
     expiry_date = datetime.strptime(lic["expiry"], '%Y-%m-%d')
     days_left = (expiry_date - datetime.now()).days
     if days_left < 0:
@@ -224,7 +261,6 @@ def validate_license():
     return jsonify({"success": False, "message": "License bound to another device"}), 400
 
 # ------------------ Logout ------------------
-
 @app.route('/logout')
 def logout():
     session.clear()
