@@ -208,16 +208,20 @@ def user_login():
     key = request.form['license_key']
     mac = get_mac_address()
     lic = licenses_col.find_one({"key": key, "active": True})
-    if lic:
-        if not lic.get("paid"):
-            return render_template("login.html", message="License key is unpaid. Contact seller.")
-        if lic["mac"] == "" or lic["mac"] == mac:
-            licenses_col.update_one({"key": key}, {"$set": {"mac": mac}})
-            session['user'] = key
-            return redirect('/user/dashboard')
-        else:
-            return render_template("login.html", message="License bound to another device.")
-    return render_template("login.html", message="Invalid license key or deactivated.")
+
+    if not lic:
+        return render_template("login.html", message="Invalid license key or deactivated.")
+
+    if not lic.get("paid"):
+        return render_template("login.html", message="License key is unpaid. Contact seller.")
+
+    session['user'] = key
+
+    if lic["mac"] == "" or lic["mac"] == mac:
+        licenses_col.update_one({"key": key}, {"$set": {"mac": mac}})
+        return redirect('/user/dashboard')
+
+    return redirect('/user/dashboard?message=This license is bound to another device. Reset it if this is your system.')
 
 @app.route('/user/dashboard')
 def user_dashboard():
