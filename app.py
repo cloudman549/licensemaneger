@@ -2,18 +2,17 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 from pymongo import MongoClient
 from datetime import datetime, timedelta
 import getmac
-import secrets
 
 app = Flask(__name__)
 app.secret_key = 'super_secret_key'
 
-# MongoDB Setup
+# ------------------ MongoDB Setup ------------------
 client = MongoClient("mongodb+srv://cloudman549:cloudman%40100@cluster0.7s7qba2.mongodb.net/license_db?retryWrites=true&w=majority&appName=Cluster0")
 db = client["license_db"]
 sellers_col = db["sellers"]
 licenses_col = db["licenses"]
 
-# Helpers
+# ------------------ Helper ------------------
 def get_mac_address():
     return getmac.get_mac_address()
 
@@ -36,86 +35,12 @@ def auto_delete_expired_licenses():
 def before_request():
     auto_delete_expired_licenses()
 
-# Helper Validation Function
-def validate_license_data(license_key, mac_address):
-    lic = licenses_col.find_one({"key": license_key})
-
-    if not lic:
-        return {"success": False, "message": "License key not found"}, 404
-
-    if not lic["active"]:
-        return {"success": False, "message": "License is deactivated"}, 400
-
-    if not lic["paid"]:
-        return {"success": False, "message": "License is unpaid"}, 400
-
-    expiry_date = datetime.strptime(lic["expiry"], '%Y-%m-%d')
-    days_left = (expiry_date - datetime.now()).days
-
-    if days_left < 0:
-        return {"success": False, "message": "License expired"}, 400
-
-    if lic["mac"] and lic["mac"] != mac_address:
-        return {"success": False, "message": "Bound to another device"}, 400
-
-    licenses_col.update_one(
-        {"key": license_key},
-        {"$set": {"mac": mac_address}}
-    )
-
-    return {
-        "success": True,
-        "leftDays": days_left,
-        "plan": lic.get("plan", "Basic")
-    }, 200
-
-# APIs
-@app.route('/api/app/login', methods=['POST'])
-def login_api():
-    data = request.get_json()
-    license_key = data.get('UserName')
-    mac_address = data.get('MacAddress')
-
-    if not license_key or not mac_address:
-        return jsonify({"success": False, "message": "Missing fields"}), 400
-
-    response, status = validate_license_data(license_key, mac_address)
-    if not response["success"]:
-        return jsonify(response), status
-
-    return jsonify({
-        "success": True,
-        "authToken": f"auth_{license_key[:5]}_token",
-        "leftDays": response.get("leftDays", 30),
-        "plan": response.get("plan", "Basic")
-    })
-
-@app.route('/generate-token', methods=['POST'])
-def generate_token():
-    data = request.get_json()
-    license_key = data.get('licenseKey')
-    device_id = data.get('deviceId') or data.get('MacAddress')
-
-    if not license_key or not device_id:
-        return jsonify({"success": False, "message": "Missing fields"}), 400
-
-    response, status = validate_license_data(license_key, device_id)
-    if not response["success"]:
-        return jsonify(response), status
-
-    token = secrets.token_hex(16)
-    return jsonify({
-        "success": True,
-        "token": token,
-        "expires_in": 3600
-    })
-
-# Remaining Routes from your original file go here...
-
+# ------------------ Routes ------------------
 @app.route('/')
 def home():
     return render_template("login.html")
 
+# ------------------ Admin ------------------
 @app.route('/admin/login', methods=['POST'])
 def admin_login():
     username = request.form['username']
@@ -204,6 +129,7 @@ def accept_due(username):
     sellers_col.update_one({"username": username}, {"$inc": {"accepted_due": accepted_count}})
     return redirect(f"/admin?message=Accepted {accepted_count} due(s) for {username}")
 
+# ------------------ Seller Panel ------------------
 @app.route('/seller/login', methods=['POST'])
 def seller_login():
     username = request.form['username']
@@ -276,19 +202,25 @@ def renew_license(key):
     licenses_col.update_one({"key": key}, {"$set": {"expiry": new_expiry}})
     return redirect('/seller')
 
+# ------------------ User Panel ------------------
 @app.route('/user', methods=['POST'])
 def user_login():
     key = request.form['license_key']
     mac = get_mac_address()
     lic = licenses_col.find_one({"key": key, "active": True})
+
     if not lic:
         return render_template("login.html", message="Invalid license key or deactivated.")
+
     if not lic.get("paid"):
         return render_template("login.html", message="License key is unpaid. Contact seller.")
+
     session['user'] = key
+
     if lic["mac"] == "" or lic["mac"] == mac:
         licenses_col.update_one({"key": key}, {"$set": {"mac": mac}})
         return redirect('/user/dashboard')
+
     return redirect('/user/dashboard?message=This license is bound to another device. Reset it if this is your system.')
 
 @app.route('/user/dashboard')
@@ -310,10 +242,33 @@ def user_reset():
     licenses_col.update_one({"key": session['user']}, {"$set": {"mac": ""}})
     return redirect('/user/dashboard?message=License reset successfully.')
 
+# ------------------ API ------------------
+@app.route('/validate_license', methods=['POST'])
+def validate_license():
+    data = request.get_json()
+    license_key = data.get('UserName')
+    mac_address = data.get('MacAddress')
+    lic = licenses_col.find_one({"key": license_key})
+    if not lic:
+        return jsonify({"success": False, "message": "License key not found"}), 404
+    if not lic["active"]:
+        return jsonify({"success": False, "message": "License is deactivated"}), 400
+    if not lic["paid"]:
+        return jsonify({"success": False, "message": "License is unpaid"}), 400
+    expiry_date = datetime.strptime(lic["expiry"], '%Y-%m-%d')
+    days_left = (expiry_date - datetime.now()).days
+    if days_left < 0:
+        return jsonify({"success": False, "message": "License expired"}), 400
+    if lic["mac"] == "" or lic["mac"] == mac_address:
+        licenses_col.update_one({"key": license_key}, {"$set": {"mac": mac_address}})
+        return jsonify({"success": True, "leftDays": days_left, "plan": lic.get("plan", "Basic")}), 200
+    return jsonify({"success": False, "message": "License bound to another device"}), 400
+
+# ------------------ Logout ------------------
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect('/')
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True)
