@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 from pymongo import MongoClient
 from datetime import datetime, timedelta
 import getmac
+from flask_cors import CORS
+
 
 app = Flask(__name__)
 app.secret_key = 'super_secret_key'
@@ -243,6 +245,57 @@ def user_reset():
     return redirect('/user/dashboard?message=License reset successfully.')
 
 # ------------------ API ------------------
+
+@app.route('/api/app/login/', methods=['POST'])
+def api_app_login():
+    data = request.get_json()
+    license_key = data.get('UserName')
+    mac_address = data.get('MacAddress')
+
+    lic = licenses_col.find_one({"key": license_key})
+    
+    if not lic:
+        return jsonify({"success": "false", "message": "License key not found"}), 404
+    if not lic["active"]:
+        return jsonify({"success": "false", "message": "License is deactivated"}), 403
+    if not lic["paid"]:
+        return jsonify({"success": "false", "message": "License is unpaid. Contact seller."}), 402
+    
+    expiry_date = datetime.strptime(lic["expiry"], '%Y-%m-%d')
+    days_left = (expiry_date - datetime.now()).days
+
+    if days_left < 0:
+        return jsonify({"success": "false", "message": "License expired"}), 401
+
+    if lic["mac"] == "" or lic["mac"] == mac_address:
+        licenses_col.update_one({"key": license_key}, {"$set": {"mac": mac_address}})
+        return jsonify({
+            "success": "true",
+            "message": "",
+            "leftDays": days_left,
+            "tokens": "unlimited",
+            "appVersion": "2025.06.14",
+            "ipList": "",
+            "ShortMessage": "",
+            "News": "",
+            "KeyType": "PREMIUM",
+            "paid": "PAID",
+            "DllVersion": "2.0.2",
+            "serverip": "127.0.0.1",
+            "ChromeDriver": "137.0.0",
+            "SaltKey": "abc123xyz",
+            "ChromeVersion": "137.0.0",
+            "UpdateURL": "http://localhost:5000/update",
+            "userid": "your@email.com",
+            "apikey": "test-key-1234"
+        })
+    else:
+        return jsonify({
+            "success": "false",
+            "message": "License bound to another device"
+        }), 409
+
+
 @app.route('/validate_license', methods=['POST'])
 def validate_license():
     data = request.get_json()
