@@ -1,72 +1,176 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>Login</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link 
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" 
-      rel="stylesheet" />
-    <style>
-        body {
-            background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .login-box {
-            background: white;
-            padding: 30px 35px;
-            border-radius: 15px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.15);
-            width: 320px;
-        }
-        h2 {
-            text-align: center;
-            margin-bottom: 25px;
-            font-weight: 700;
-            color: #333;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    body {
+      background: url('/static/starlink.webp') no-repeat center center fixed;
+      background-size: cover;
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .login-box {
+      background: rgba(255, 255, 255, 0.0);
+      backdrop-filter: blur(8px);
+      padding: 30px 35px;
+      border-radius: 15px;
+      box-shadow: none;
+      width: 100%;
+      max-width: 400px;
+      margin: 200px 20px 20px 20px;
+      border: 2px solid red; /* RED BORDER */
+      min-height: 200px; /* FIXED HEIGHT */
+    }
+
+    h2, h5, label, .form-check-label, .form-control, .btn {
+      font-weight: bold;
+      color: #000;
+    }
+
+    .form-control {
+      background-color: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(0, 0, 0, 0.3);
+      color:#000;
+    }
+
+    .form-control::placeholder {
+      color: rgba(0, 0, 0, 1);
+    }
+
+    .form-control:focus {
+      background-color: rgba(255, 255, 255, 0.2);
+      color: #000;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #6a11cb, #bfc7d5ff);
+      border: none;
+      font-weight: bold;
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #5c0fd3, #1f63e0);
+    }
+
+    .btn-download {
+      border: none;
+      font-weight: bold;
+      color: green;
+    }
+
+    .btn-download:hover {
+      background: linear-gradient(135deg, #008f7a, #c0cdabff);
+      color: white;
+    }
+
+    .alert-danger {
+      background-color: rgba(255, 0, 0, 0.6);
+      color: #000;
+      border: none;
+    }
+
+    #passwordField {
+      visibility: visible;
+      height: auto;
+      transition: visibility 0.3s ease;
+    }
+
+    #passwordField.hidden {
+      visibility: hidden;
+      height: 0;
+      overflow: hidden;
+    }
+
+    @media screen and (max-width: 576px) {
+      .login-box {
+        padding: 25px 20px;
+        margin: 215px 10px;
+      }
+
+      h2 {
+        font-size: 22px;
+      }
+
+      .btn {
+        font-size: 14px;
+      }
+    }
+  </style>
 </head>
 <body>
-    <div class="login-box">
-        <h2>Login Panel</h2>
+  <div class="login-box">
+    <h2>Login Panel</h2>
 
-        {% if message %}
-            <div class="alert alert-danger">{{ message }}</div>
-        {% endif %}
+    {% if message %}
+      <div class="alert alert-danger">{{ message }}</div>
+    {% endif %}
 
-        <form method="POST" action="/admin/login" id="adminForm">
-            <h5>Admin Login</h5>
-            <div class="mb-3">
-                <input type="text" name="username" placeholder="Admin Username" class="form-control" required />
-            </div>
-            <div class="mb-3">
-                <input type="password" name="password" placeholder="Admin Password" class="form-control" required />
-            </div>
-            <button type="submit" class="btn btn-primary w-100 mb-3">Login as Admin</button>
-        </form>
+    <form method="POST" id="unifiedLoginForm">
+      <div class="mb-3">
+        <input type="text" name="username" id="usernameInput" placeholder="Username / License Key" class="form-control" required />
+      </div>
+      <div class="mb-3" id="passwordField">
+        <input type="password" name="password" placeholder="Password" class="form-control" />
+      </div>
 
-        <form method="POST" action="/seller/login" id="sellerForm">
-            <h5>Seller Login</h5>
-            <div class="mb-3">
-                <input type="text" name="username" placeholder="Seller Username" class="form-control" required />
-            </div>
-            <div class="mb-3">
-                <input type="password" name="password" placeholder="Seller Password" class="form-control" required />
-            </div>
-            <button type="submit" class="btn btn-success w-100 mb-3">Login as Seller</button>
-        </form>
+      <div class="mb-3">
+        <label>Login As:</label><br />
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="role" id="adminRadio" value="admin" checked />
+          <label class="form-check-label" for="adminRadio">Admin</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="role" id="sellerRadio" value="seller" />
+          <label class="form-check-label" for="sellerRadio">Seller</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="role" id="userRadio" value="user" />
+          <label class="form-check-label" for="userRadio">User</label>
+        </div>
+      </div>
 
-        <form method="POST" action="/user" id="userForm">
-            <h5>User Login (License Key)</h5>
-            <div class="mb-3">
-                <input type="text" name="license_key" placeholder="Enter License Key" class="form-control" required />
-            </div>
-            <button type="submit" class="btn btn-info w-100">Login as User</button>
-        </form>
-    </div>
+      <button type="submit" class="btn btn-primary w-100 mb-2">Login</button>
+
+      <a href="https://gofile.io/d/FLiyrq" class="btn btn-download w-100" download>
+        Download Setup
+      </a>
+    </form>
+  </div>
+
+  <script>
+    const form = document.getElementById('unifiedLoginForm');
+    const roleRadios = document.getElementsByName('role');
+    const passwordField = document.getElementById('passwordField');
+    const usernameInput = document.getElementById('usernameInput');
+
+    // Change input name based on selected role
+    roleRadios.forEach(radio => {
+      radio.addEventListener('change', () => {
+        const isUser = document.getElementById('userRadio').checked;
+        passwordField.classList.toggle('hidden', isUser);
+        usernameInput.setAttribute('name', isUser ? 'license_key' : 'username');
+      });
+    });
+
+    // Set form action URL based on role
+    form.addEventListener('submit', function (e) {
+      const selectedRole = document.querySelector('input[name="role"]:checked').value;
+      if (selectedRole === 'admin') {
+        form.action = '/admin/login';
+      } else if (selectedRole === 'seller') {
+        form.action = '/seller/login';
+      } else {
+        form.action = '/user';
+      }
+    });
+  </script>
 </body>
 </html>
