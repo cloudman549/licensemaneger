@@ -77,8 +77,10 @@
             <button type="submit" class="btn btn-success w-100">Create New License</button>
         </form>
 
+        <!-- Search Input -->
         <input type="text" id="searchInput" placeholder="Search License Key" class="form-control search-box" onkeyup="filterLicenses()" />
 
+        <!-- License Cards -->
         {% if licenses|length == 0 %}
             <p class="text-center text-muted">No licenses created yet.</p>
         {% else %}
@@ -89,8 +91,16 @@
                     {% if not lic.paid %}
                         <a href="/seller/mark_paid/{{ lic.key }}" class="btn btn-outline-primary btn-sm">Mark as Paid</a>
                         <a href="/seller/delete_license/{{ lic.key }}" class="btn btn-danger btn-sm">Delete</a>
+                    {% else %}
+                        <a href="/seller/reset_license/{{ lic.key }}" class="btn btn-warning btn-sm">Reset</a>
+
+                        {% if lic.active %}
+                            <a href="/seller/deactivate_license/{{ lic.key }}" class="btn btn-outline-danger btn-sm">Deactivate</a>
+                        {% else %}
+                            <a href="/seller/activate_license/{{ lic.key }}" class="btn btn-outline-success btn-sm">Activate</a>
+                        {% endif %}
                     {% endif %}
-                    <a href="/seller/reset_license/{{ lic.key }}" class="btn btn-warning btn-sm">Reset</a>
+
                     {% if lic.expiry and lic.expiry < now.strftime('%Y-%m-%d') %}
                         <a href="/seller/renew_license/{{ lic.key }}" class="btn btn-info btn-sm">Renew</a>
                     {% endif %}
@@ -99,6 +109,7 @@
             {% endfor %}
         {% endif %}
 
+        <!-- Footer Buttons -->
         <a href="{{ url_for('logout') }}" class="btn btn-secondary mt-4 w-100">Logout</a>
         <a href="{{ url_for('home') }}" class="btn btn-primary mt-2 w-100">Go to User Login</a>
     </div>

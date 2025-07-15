@@ -237,7 +237,19 @@ def user_dashboard():
         days_left = (expiry_date - datetime.now()).days
         return render_template("user_panel.html", message=message, license_key=lic['key'], days_left=days_left)
     return render_template("user_panel.html", message=message)
+@app.route('/seller/activate_license/<key>')
+def activate_license(key):
+    if not session.get('seller'):
+        return redirect('/')
+    licenses_col.update_one({"key": key}, {"$set": {"active": True}})
+    return redirect('/seller?message=License activated successfully.')
 
+@app.route('/seller/deactivate_license/<key>')
+def deactivate_license(key):
+    if not session.get('seller'):
+        return redirect('/')
+    licenses_col.update_one({"key": key}, {"$set": {"active": False}})
+    return redirect('/seller?message=License deactivated successfully.')
 @app.route('/user/reset')
 def user_reset():
     if not session.get('user'):
