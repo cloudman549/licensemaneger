@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Login</title>
+  <title>Login-RailOne</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <style>
     body {
-      background: url('/static/starlink.webp') no-repeat center center fixed;
+      background: url('/static/rail_131.jpg') no-repeat center center fixed;
       background-size: cover;
       min-height: 100vh;
       margin: 0;
@@ -22,26 +22,32 @@
       padding: 30px 35px;
       border-radius: 15px;
       box-shadow: none;
-      width: 100%;
+      width: 400px;
       max-width: 400px;
       margin: 200px 20px 20px 20px;
       border: 2px solid red; /* RED BORDER */
-      min-height: 200px; /* FIXED HEIGHT */
+      background: url('/static/rail_131.jpg') no-repeat center center fixed;
+      min-height: 100px; /* FIXED HEIGHT */
     }
 
-    h2, h5, label, .form-check-label, .form-control, .btn {
+    h2, h5,label, .form-check-label, .form-control, .btn {
       font-weight: bold;
-      color: #000;
+      color: #faf4f4ff;
+    }
+    h4{
+      color: #faf4f4ff;
+      font-size: 20px;
+
     }
 
     .form-control {
       background-color: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(253, 251, 251, 0.3);
       color:#000;
     }
 
     .form-control::placeholder {
-      color: rgba(0, 0, 0, 1);
+      color: rgba(250, 244, 244, 1);
     }
 
     .form-control:focus {
@@ -102,11 +108,15 @@
       .btn {
         font-size: 14px;
       }
+      .api{
+        color: red;
+      }
     }
   </style>
 </head>
 <body>
   <div class="login-box">
+    <img src="/static/rail_129.png" alt="Logo" class="img-fluid" />
     <h2>Login Panel</h2>
 
     {% if message %}
@@ -115,14 +125,14 @@
 
     <form method="POST" id="unifiedLoginForm">
       <div class="mb-3">
-        <input type="text" name="username" id="usernameInput" placeholder="Username / License Key" class="form-control" required />
+        <input type="text" name="username" id="usernameInput" placeholder="Username" class="form-control" required />
       </div>
       <div class="mb-3" id="passwordField">
         <input type="password" name="password" placeholder="Password" class="form-control" />
       </div>
 
-      <div class="mb-3">
-        <label>Login As:</label><br />
+      <div class="mb-2">
+        
         <div class="form-check form-check-inline">
           <input class="form-check-input" type="radio" name="role" id="adminRadio" value="admin" checked />
           <label class="form-check-label" for="adminRadio">Admin</label>
@@ -133,30 +143,30 @@
         </div>
         <div class="form-check form-check-inline">
           <input class="form-check-input" type="radio" name="role" id="userRadio" value="user" />
-          <label class="form-check-label" for="userRadio">User</label>
+          <label class="form-check-label" for="userRadio">Reset</label>
         </div>
       </div>
 
       <button type="submit" class="btn btn-primary w-100 mb-2">Login</button>
 
       <!-- Main Download Button -->
-      <a href="https://gofile.io/d/cn9ta5" class="btn btn-download w-100 mb-2" download>
-       latest  Download Setup link:-
+      <a href="https://gofile.io/d/VPNQmk" class="btn btn-download w-100 mb-2" download>
+        Download setup :-
       </a>
 
       <!-- Additional Server Links -->
       <div class="text-center mt-1">
-        <h5>Alternative setup Servers:</h5>
         <div class="d-flex flex-column gap-2">
-          <a href="https://gofile.io/d/NVkiXp" class="btn btn-outline-primary" target="_blank">SERVER 1(fast)</a>
-          <a href="https://gofile.io/d/NVkiXp" class="btn btn-outline-primary" target="_blank">SERVER 2(super fast)</a>
-           <a>Truecaptcha detail</a>
-          <a>user_id :- Joginder</a>
-          <a>api key:- 7tfz6wlAmN8YB4F3O2nB </a>
+  
+          
         </div>
       </div>
+      
     </form>
+    <h4>userid:-   Joginder</h4>
+    <h4>api key:- 7tfz6wlAmN8YB4F3O2nB</h4>
   </div>
+  
 
   <script>
     const form = document.getElementById('unifiedLoginForm');
