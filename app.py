@@ -1,9 +1,15 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
 from pymongo import MongoClient
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import getmac
 from flask_cors import CORS
-
+import base64
+from io import BytesIO
+from PIL import Image
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.lib.utils import ImageReader
+import os
 
 app = Flask(__name__)
 CORS(app)
@@ -14,6 +20,7 @@ client = MongoClient("mongodb+srv://cloudman549:cloudman%40100@cluster0.7s7qba2.
 db = client["license_db"]
 sellers_col = db["sellers"]
 licenses_col = db["licenses"]
+screenshots_col = db["screenshots"]
 
 # ------------------ Helper ------------------
 def get_mac_address():
@@ -34,9 +41,15 @@ def auto_delete_expired_licenses():
                 if (now - expiry_date).days > 2:
                     licenses_col.delete_one({"key": lic["key"]})
 
+def auto_delete_old_screenshots():
+    cutoff = datetime.now() - timedelta(hours=12)
+    result = screenshots_col.delete_many({"upload_time": {"$lt": cutoff}})
+    print(f"[DEBUG] Deleted {result.deleted_count} screenshots older than 12 hours")
+
 @app.before_request
 def before_request():
     auto_delete_expired_licenses()
+    auto_delete_old_screenshots()
 
 # ------------------ Routes ------------------
 @app.route('/')
@@ -237,6 +250,7 @@ def user_dashboard():
         days_left = (expiry_date - datetime.now()).days
         return render_template("user_panel.html", message=message, license_key=lic['key'], days_left=days_left)
     return render_template("user_panel.html", message=message)
+
 @app.route('/seller/activate_license/<key>')
 def activate_license(key):
     if not session.get('seller'):
@@ -250,6 +264,7 @@ def deactivate_license(key):
         return redirect('/')
     licenses_col.update_one({"key": key}, {"$set": {"active": False}})
     return redirect('/seller?message=License deactivated successfully.')
+
 @app.route('/user/reset')
 def user_reset():
     if not session.get('user'):
@@ -258,7 +273,6 @@ def user_reset():
     return redirect('/user/dashboard?message=License reset successfully.')
 
 # ------------------ API ------------------
-
 @app.route('/api/app/login/', methods=['POST'])
 def api_app_login():
     data = request.get_json()
@@ -308,7 +322,6 @@ def api_app_login():
             "message": "License bound to another device"
         }), 409
 
-
 @app.route('/validate_license', methods=['POST'])
 def validate_license():
     data = request.get_json()
@@ -329,6 +342,158 @@ def validate_license():
         licenses_col.update_one({"key": license_key}, {"$set": {"mac": mac_address}})
         return jsonify({"success": True, "leftDays": days_left, "plan": lic.get("plan", "Basic")}), 200
     return jsonify({"success": False, "message": "License bound to another device"}), 400
+
+# ------------------ Screenshot API ------------------
+@app.route('/api/upload_screenshot', methods=['POST'])
+def upload_screenshot():
+    print("[DEBUG] Upload screenshot request received")
+    if 'screenshot' not in request.files:
+        print("[DEBUG] No file part")
+        return jsonify({"success": False, "message": "No file part"}), 400
+    file = request.files['screenshot']
+    if file.filename == '':
+        print("[DEBUG] No selected file")
+        return jsonify({"success": False, "message": "No selected file"}), 400
+    
+    # Read file into memory and convert to base64
+    file_data = file.read()
+    base64_image = base64.b64encode(file_data).decode('utf-8')
+    
+    # USE ORIGINAL FILENAME from client
+    filename = file.filename  # Client se jo naam bheja hai wahi use karo
+    
+    # Store in MongoDB
+    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    screenshots_col.insert_one({
+        "filename": filename,
+        "image_data": base64_image,
+        "upload_time": datetime.now(),
+        "upload_date": today,
+        "size": len(file_data)
+    })
+    print(f"[DEBUG] Stored screenshot: {filename}")
+    
+    # SIMPLE RESPONSE - no extra details
+    return jsonify({"success": True, "message": "Screenshot uploaded"}), 200
+
+@app.route('/api/today_screenshots')
+def get_today_screenshots():
+    if not session.get('admin'):
+        print("[DEBUG] No admin session, returning 403")
+        return jsonify({"success": False, "message": "Admin access required"}), 403
+    
+    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    tomorrow = today + timedelta(days=1)
+    screenshots = list(screenshots_col.find({
+        "upload_date": {
+            "$gte": today,
+            "$lt": tomorrow
+        }
+    }).sort("upload_time", -1))
+    
+    print(f"[DEBUG] Found {len(screenshots)} screenshots for today")
+    screenshot_list = []
+    for s in screenshots:
+        screenshot_list.append({
+            "id": str(s["_id"]),
+            "filename": s["filename"],
+            "upload_time": s["upload_time"].strftime('%Y-%m-%d %H:%M:%S'),
+            "image_data": f"data:image/png;base64,{s['image_data']}"
+        })
+    
+    return jsonify({"success": True, "screenshots": screenshot_list})
+
+@app.route('/api/download_today_screenshots')
+def download_today_screenshots():
+    if not session.get('admin'):
+        print("[DEBUG] No admin session for PDF download, returning 403")
+        return jsonify({"success": False, "message": "Admin access required"}), 403
+    
+    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    tomorrow = today + timedelta(days=1)
+    screenshots = list(screenshots_col.find({
+        "upload_date": {
+            "$gte": today,
+            "$lt": tomorrow
+        }
+    }).sort("upload_time", -1))
+    
+    if not screenshots:
+        print("[DEBUG] No screenshots found for PDF download")
+        return jsonify({"success": False, "message": "No screenshots today"}), 404
+    
+    pdf_buffer = BytesIO()
+    c = canvas.Canvas(pdf_buffer, pagesize=letter)
+    page_width, page_height = letter  # Page size: 612x792 points
+    margin = 1  # Margin around the images (1px)
+    img_spacing = 1  # Spacing between images (1px)
+    images_per_row = 4  # Number of images per row
+
+    # Calculate maximum image width
+    max_img_width = (page_width - (images_per_row + 1) * margin) / images_per_row
+
+    # Estimate aspect ratio from the first image
+    if screenshots:
+        try:
+            img_data = base64.b64decode(screenshots[0]['image_data'])
+            img_io = BytesIO(img_data)
+            img = Image.open(img_io)
+            aspect = img.size[1] / float(img.size[0])  # height / width
+        except:
+            aspect = 0.75  # Default aspect if error
+    else:
+        aspect = 0.75
+
+    max_img_height = max_img_width * aspect
+
+    # Calculate how many rows fit on a page
+    rows_per_page = int((page_height - 2 * margin) / (max_img_height + img_spacing))
+
+    # Process screenshots
+    img_index = 0
+    while img_index < len(screenshots):
+        for row in range(rows_per_page):
+            if img_index >= len(screenshots):
+                break
+            for col in range(images_per_row):
+                if img_index >= len(screenshots):
+                    break
+                s = screenshots[img_index]
+                try:
+                    img_data = base64.b64decode(s['image_data'])
+                    img_io = BytesIO(img_data)
+                    img = Image.open(img_io)
+                    img_reader = ImageReader(img_io)
+                    
+                    # Get original aspect
+                    img_width, img_height = img.size
+                    aspect = img_height / float(img_width)
+                    
+                    # Scale to max
+                    draw_width = max_img_width
+                    draw_height = draw_width * aspect
+                    
+                    # If height exceeds, scale based on height
+                    if draw_height > max_img_height:
+                        draw_height = max_img_height
+                        draw_width = draw_height / aspect
+                    
+                    # Position
+                    x_position = margin + col * (max_img_width + img_spacing)
+                    y_position = page_height - margin - row * (max_img_height + img_spacing) - draw_height
+                    
+                    c.drawImage(img_reader, x_position, y_position, width=draw_width, height=draw_height)
+                except Exception as e:
+                    print(f"[DEBUG] Error adding image to PDF: {e}")
+                    continue
+                img_index += 1
+        if img_index < len(screenshots):
+            c.showPage()
+    
+    c.save()
+    pdf_buffer.seek(0)
+    print("[DEBUG] Sending PDF with", len(screenshots), "screenshots")
+    return send_file(pdf_buffer, as_attachment=True, download_name=f"screenshots_{datetime.now().strftime('%Y%m%d')}.pdf", mimetype='application/pdf')
 
 # ------------------ Logout ------------------
 @app.route('/logout')

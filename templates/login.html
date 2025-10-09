@@ -30,20 +30,19 @@
       min-height: 100px; /* FIXED HEIGHT */
     }
 
-    h2, h5,label, .form-check-label, .form-control, .btn {
+    h2, h5, label, .form-check-label, .form-control, .btn {
       font-weight: bold;
       color: #faf4f4ff;
     }
-    h4{
+    h4 {
       color: #faf4f4ff;
       font-size: 20px;
-
     }
 
     .form-control {
       background-color: rgba(255, 255, 255, 0.1);
       border: 1px solid rgba(253, 251, 251, 0.3);
-      color:#000;
+      color: #000;
     }
 
     .form-control::placeholder {
@@ -108,7 +107,7 @@
       .btn {
         font-size: 14px;
       }
-      .api{
+      .api {
         color: red;
       }
     }
@@ -133,20 +132,20 @@
 
       <div class="mb-2">
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="role" id="adminRadio" value="admin" checked />
-          <label class="form-check-label" for="adminRadio">Master</label>
+          <input class="form-check-input" type="radio" name="role" id="masterRadio" value="master" checked />
+          <label class="form-check-label" for="masterRadio">Master</label>
         </div>
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="role" id="adminRadio" value="admin" checked />
+          <input class="form-check-input" type="radio" name="role" id="adminRadio" value="admin" />
           <label class="form-check-label" for="adminRadio">Admin</label>
         </div>
-         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="role" id="sellerRadio" value="seller" />
-          <label class="form-check-label" for="sellerRadio">Super</label>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="role" id="superRadio" value="super" />
+          <label class="form-check-label" for="superRadio">Super</label>
         </div>
         <div class="form-check form-check-inline">
           <input class="form-check-input" type="radio" name="role" id="sellerRadio" value="seller" />
-          <label class="form-check-label" for="sellerRadio"> Sellers </label>
+          <label class="form-check-label" for="sellerRadio">Seller</label>
         </div>
         <div class="form-check form-check-inline">
           <input class="form-check-input" type="radio" name="role" id="userRadio" value="user" />
@@ -166,15 +165,10 @@
       <!-- Additional Server Links -->
       <div class="text-center mt-1">
         <div class="d-flex flex-column gap-2">
-  
-          
         </div>
       </div>
-      
     </form>
-    
   </div>
-  
 
   <script>
     const form = document.getElementById('unifiedLoginForm');
@@ -194,8 +188,12 @@
     // Set form action URL based on role
     form.addEventListener('submit', function (e) {
       const selectedRole = document.querySelector('input[name="role"]:checked').value;
-      if (selectedRole === 'admin') {
+      if (selectedRole === 'master') {
+        form.action = '/master/login';
+      } else if (selectedRole === 'admin') {
         form.action = '/admin/login';
+      } else if (selectedRole === 'super') {
+        form.action = '/super/login';
       } else if (selectedRole === 'seller') {
         form.action = '/seller/login';
       } else {

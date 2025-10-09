@@ -4,12 +4,12 @@
     <meta charset="UTF-8" />
     <title>Admin Panel</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link 
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" 
-      rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
-            background-color: #f2f2f2;
+            background-color: #259dbaff;
         }
         .panel {
             max-width: 700px;
@@ -19,18 +19,117 @@
             background: white;
             border-radius: 15px;
             box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+            background-color: #80c2d2ff;
+        }
+        .rail-logo{
+           width: 350px;
+            height: 100px; 
         }
         .seller-card {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #f8f9fa;
+            background: #259dbaff;
             padding: 10px 15px;
             margin-bottom: 10px;
             border-radius: 8px;
         }
         .seller-card span {
             font-weight: 500;
+        }
+        .btn-container {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .modal-content {
+            background-color: #259dbaff;
+            border: 2px solid #f2f2f2;
+            border-radius: 15px;
+        }
+        .modal-header {
+            border-bottom: 1px solid #f2f2f2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 20px;
+            color: #fff;
+            background: #dc3545;
+            border: none;
+            border-radius: 8px;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1050;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .modal-close-btn:hover {
+            background: #c82333;
+            transform: scale(1.05);
+        }
+        .download-btn {
+            position: absolute;
+            top: 15px;
+            right: 60px;
+            font-size: 16px;
+            color: #fff;
+            background: #8cafb8ff;
+            border: none;
+            border-radius: 8px;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1050;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .download-btn:hover {
+            background: #218838;
+            transform: scale(1.05);
+        }
+        .screenshot-card {
+            margin-bottom: 10px;
+            padding: 5px;
+        }
+        .screenshot-card img {
+            max-height: 400px;
+            max-width: 100%;
+            width: 100%;
+            object-fit: contain;
+            border: 3px solid #f2f2f2;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease;
+        }
+        .screenshot-card img:hover {
+            transform: scale(1.02);
+        }
+        .screenshots-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            
+            padding: 5px;
+        }
+        /* Make modal larger */
+        .modal-xl {
+            max-width: 90%;
+        }
+        /* Better modal sizing */
+        @media (min-width: 1200px) {
+            .modal-xl {
+                max-width: 1140px;
+            }
         }
     </style>
 </head>
@@ -73,43 +172,43 @@
 
         <!-- Modal for Seller Stats and Actions -->
         <div class="modal fade" id="detailsModal{{ loop.index }}" tabindex="-1" aria-hidden="true">
-          <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h5 class="modal-title">📊 {{ seller.username }}'s Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-              </div>
-              <div class="modal-body">
-                {% set stats = seller_stats[seller.username] %}
-                <ul class="list-group mb-3">
-                  <li class="list-group-item">Total Keys: <strong>{{ stats.total }}</strong></li>
-                  <li class="list-group-item">Paid Keys: <strong>{{ stats.paid }}</strong></li>
-                  <li class="list-group-item">Unpaid Keys: <strong>{{ stats.unpaid }}</strong></li>
-                  <li class="list-group-item text-danger">Tokens Due: <strong>{{ stats.due }}</strong></li>
-                </ul>
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">📊 {{ seller.username }}'s Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        {% set stats = seller_stats[seller.username] %}
+                        <ul class="list-group mb-3">
+                            <li class="list-group-item">Total Keys: <strong>{{ stats.total }}</strong></li>
+                            <li class="list-group-item">Paid Keys: <strong>{{ stats.paid }}</strong></li>
+                            <li class="list-group-item">Unpaid Keys: <strong>{{ stats.unpaid }}</strong></li>
+                            <li class="list-group-item text-danger">Tokens Due: <strong>{{ stats.due }}</strong></li>
+                        </ul>
 
-                <!-- Change Password -->
-                <form method="POST" action="/admin/change_password/{{ seller.username }}" class="mb-3">
-                  <div class="input-group">
-                    <input type="text" name="new_password" class="form-control" placeholder="Enter new password" required />
-                    <button type="submit" class="btn btn-outline-primary">Change Password</button>
-                  </div>
-                </form>
+                        <!-- Change Password -->
+                        <form method="POST" action="/admin/change_password/{{ seller.username }}" class="mb-3">
+                            <div class="input-group">
+                                <input type="text" name="new_password" class="form-control" placeholder="Enter new password" required />
+                                <button type="submit" class="btn btn-outline-primary">Change Password</button>
+                            </div>
+                        </form>
 
-                <!-- Accept Due -->
-                {% if stats.due > 0 %}
-                <form method="POST" action="/admin/accept_due/{{ seller.username }}">
-                  <div class="input-group">
-                    <input type="number" name="accept_count" class="form-control" min="1" max="{{ stats.due }}" placeholder="Tokens to accept" required />
-                    <button type="submit" class="btn btn-outline-success">Accept Due</button>
-                  </div>
-                </form>
-                {% else %}
-                <p class="text-muted">No dues to accept.</p>
-                {% endif %}
-              </div>
+                        <!-- Accept Due -->
+                        {% if stats.due > 0 %}
+                        <form method="POST" action="/admin/accept_due/{{ seller.username }}">
+                            <div class="input-group">
+                                <input type="number" name="accept_count" class="form-control" min="1" max="{{ stats.due }}" placeholder="Tokens to accept" required />
+                                <button type="submit" class="btn btn-outline-success">Accept Due</button>
+                            </div>
+                        </form>
+                        {% else %}
+                        <p class="text-muted">No dues to accept.</p>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
-          </div>
         </div>
         {% endfor %}
 
@@ -117,7 +216,32 @@
         <p class="text-center text-muted">No sellers created yet.</p>
         {% endif %}
 
-        <a href="/seller" class="btn btn-outline-primary btn-sm mt-3">Go to Seller Panel</a>
+        <div class="btn-container">
+            <a href="/seller" class="btn btn-outline-primary btn-sm">Go to Seller Panel</a>
+            <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#screenshotsModal">RailOne view</button>
+        </div>
+    </div>
+
+    <!-- Modal for Today's Screenshots -->
+    <div class="modal fade" id="screenshotsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <!-- Close button with icon -->
+                <button type="button" class="modal-close-btn" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i>
+                </button>
+                <!-- Download button with icon -->
+                <button id="downloadPdfBtn" class="download-btn" title="Download as PDF">
+                    <i class="fas fa-download"></i>
+                </button>
+                <div class="modal-header">
+                    <h5 class="rail-logo"> <img src="/static/rail_129.png" alt="Logo" class="img-fluid" /></h5>
+                </div>
+                <div class="modal-body">
+                    <div id="screenshotsList" class="screenshots-grid"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -127,6 +251,54 @@
                 window.location.href = "/admin/delete_seller/" + username;
             }
         }
+
+        // Fetch screenshots when modal is shown
+        document.getElementById('screenshotsModal').addEventListener('show.bs.modal', function () {
+            console.log('[DEBUG] Fetching screenshots from /api/today_screenshots');
+            fetch('/api/today_screenshots')
+                .then(response => {
+                    console.log('[DEBUG] Response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('[DEBUG] Response data:', data);
+                    const container = document.getElementById('screenshotsList');
+                    container.innerHTML = '';
+                    if (data.success) {
+                        if (data.screenshots.length === 0) {
+                            console.log('[DEBUG] No screenshots found');
+                            container.innerHTML = '<p class="text-center text-muted">No screenshots.....</p>';
+                        } else {
+                            console.log('[DEBUG] Rendering', data.screenshots.length, 'screenshots');
+                            data.screenshots.forEach(screenshot => {
+                                const div = document.createElement('div');
+                                div.className = 'screenshot-card';
+                                // ONLY IMAGE - NO FILENAME OR TIMESTAMP
+                                div.innerHTML = `
+                                    <img src="${screenshot.image_data}" alt="Screenshot" />
+                                `;
+                                container.appendChild(div);
+                            });
+                        }
+                    } else {
+                        console.error('[DEBUG] API error:', data.message);
+                        container.innerHTML = `<p class="text-center text-danger">${data.message}</p>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('[DEBUG] Fetch error:', error);
+                    document.getElementById('screenshotsList').innerHTML = '<p class="text-center text-danger">Failed to load screenshots: ' + error.message + '</p>';
+                });
+        });
+
+        // Download PDF button
+        document.getElementById('downloadPdfBtn').addEventListener('click', function() {
+            console.log('[DEBUG] Initiating PDF download');
+            window.location.href = '/api/download_today_screenshots';
+        });
     </script>
 </body>
 </html>
