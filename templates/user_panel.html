@@ -7,22 +7,26 @@
     <link 
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" 
       rel="stylesheet" />
+    <link 
+      rel="stylesheet" 
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
         body {
-            background-color: #fff5f0;
+            background-color: #259dbaff;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
         }
         .panel {
-            background: white;
+            background-color: #81acb7ff;;
             padding: 30px 40px;
             border-radius: 15px;
             box-shadow: 0 0 15px rgba(0,0,0,0.1);
             max-width: 400px;
             width: 100%;
             text-align: center;
+            position: relative;
         }
         .btn-reset {
             margin-top: 25px;
@@ -51,6 +55,95 @@
         .btn-loading .spinner-border {
             display: inline-block;
         }
+        /* Modal styling (copied from Admin Panel) */
+        .modal-content {
+            background-color: #259dbaff;
+            border: 2px solid #f2f2f2;
+            border-radius: 15px;
+        }
+        .modal-header {
+            border-bottom: 1px solid #f2f2f2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 20px;
+            color: #fff;
+            background: #dc3545;
+            border: none;
+            border-radius: 8px;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1050;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .modal-close-btn:hover {
+            background: #c82333;
+            transform: scale(1.05);
+        }
+        .download-btn {
+            position: absolute;
+            top: 15px;
+            right: 60px;
+            font-size: 16px;
+            color: #fff;
+            background: #8cafb8ff;
+            border: none;
+            border-radius: 8px;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1050;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .download-btn:hover {
+            background: #218838;
+            transform: scale(1.05);
+        }
+        .screenshot-card {
+            margin-bottom: 10px;
+            padding: 5px;
+        }
+        .screenshot-card img {
+            max-height: 400px;
+            max-width: 100%;
+            width: 100%;
+            object-fit: contain;
+            border: 3px solid #f2f2f2;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease;
+        }
+        .screenshot-card img:hover {
+            transform: scale(1.02);
+        }
+        .screenshots-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            
+            padding: 5px;
+        }
+        /* Make modal larger */
+        .modal-xl {
+            max-width: 90%;
+        }
+        /* Better modal sizing */
+        @media (min-width: 1200px) {
+            .modal-xl {
+                max-width: 1140px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -74,8 +167,10 @@
         <div class="text-primary mb-3">
             APNE SELLER SE CONTACT KARE KEY RENEW YA KISI BHI PROBLEM KO THIK KARWANE KE LIYE
         </div>
-        <h4>userid:-   Alvish01</h4>
-    <h4>api key:- LPemRuVks0SKheShLt94</h4>
+
+        <h5>Userid: <span class="text-secondary">Alvish01</span></h5>
+        <h5>API Key: <span class="text-secondary">LPemRuVks0SKheShLt94</span></h5>
+
         <form action="/user/reset" id="resetForm">
             <button type="submit" class="btn btn-reset w-100" id="resetBtn">
                 <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -86,8 +181,37 @@
         <a href="/logout" class="btn btn-secondary mt-4 w-100">Logout</a>
         <a href="/seller" class="btn btn-outline-primary btn-sm mt-3">Go to Seller Panel</a>
 
+        <!-- RAILONE VIEW BUTTON -->
+        <button class="btn btn-outline-success btn-sm mt-3" data-bs-toggle="modal" data-bs-target="#screenshotsModal">
+            RailOne View
+        </button>
     </div>
 
+    <!-- Modal for Today's Screenshots -->
+    <div class="modal fade" id="screenshotsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <!-- Close button -->
+                <button type="button" class="modal-close-btn" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i>
+                </button>
+                <!-- Download button -->
+                <button id="downloadPdfBtn" class="download-btn" title="Download as PDF">
+                    <i class="fas fa-download"></i>
+                </button>
+                <div class="modal-header">
+                    <h5 class="rail-logo">
+                        <img src="/static/rail_129.png" alt="Logo" class="img-fluid" style="width:350px; height:100px;">
+                    </h5>
+                </div>
+                <div class="modal-body">
+                    <div id="screenshotsList" class="screenshots-grid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         const form = document.getElementById('resetForm');
         const btn = document.getElementById('resetBtn');
@@ -95,6 +219,39 @@
         form.addEventListener('submit', function () {
             btn.classList.add('btn-loading');
             btn.setAttribute('disabled', 'disabled');
+        });
+
+        // RAILONE VIEW LOGIC (same as Admin)
+        document.getElementById('screenshotsModal').addEventListener('show.bs.modal', function () {
+            fetch('/api/today_screenshots')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('screenshotsList');
+                    container.innerHTML = '';
+                    if (data.success) {
+                        if (data.screenshots.length === 0) {
+                            container.innerHTML = '<p class="text-center text-muted">No screenshots.....</p>';
+                        } else {
+                            data.screenshots.forEach(screenshot => {
+                                const div = document.createElement('div');
+                                div.className = 'screenshot-card';
+                                div.innerHTML = `<img src="${screenshot.image_data}" alt="Screenshot" />`;
+                                container.appendChild(div);
+                            });
+                        }
+                    } else {
+                        container.innerHTML = `<p class="text-center text-danger">${data.message}</p>`;
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('screenshotsList').innerHTML = 
+                        '<p class="text-center text-danger">Failed to load screenshots: ' + error.message + '</p>';
+                });
+        });
+
+        // PDF download
+        document.getElementById('downloadPdfBtn').addEventListener('click', function() {
+            window.location.href = '/api/download_today_screenshots';
         });
     </script>
 </body>
