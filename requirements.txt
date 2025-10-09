@@ -3,5 +3,6 @@ gunicorn==21.2.0
 getmac==0.9.3
 pymongo==4.6.1
 dnspython==2.3.0
-flask-cors
-Pillow
+flask-cors==4.0.0
+Pillow==10.0.1
+reportlab==4.0.9
