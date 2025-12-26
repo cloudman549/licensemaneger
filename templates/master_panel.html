@@ -2,100 +2,28 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RailOne Admin Dashboard</title>
+    <title>RailOne Master Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { 
-            background-color: #f8f9fa; 
-            font-family: Arial, sans-serif;
-        }
-        .dashboard-header { 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-            color: white; 
-            padding: 20px; 
-            text-align: center; 
-        }
-        .stat-card { 
-            border: none; 
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
-            margin-bottom: 1rem;
-        }
-        .chart-container { 
-            position: relative; 
-            height: 300px; 
-            margin-bottom: 20px; 
-        }
-        .navbar { 
-            background-color: #343a40 !important; 
-        }
-        .table-responsive { 
-            overflow-x: auto; 
-        }
-        .btn-sm { 
-            font-size: 0.8rem; 
-            padding: 0.25rem 0.5rem; 
-        }
-        .form-control-sm { 
-            font-size: 0.8rem; 
-            padding: 0.25rem 0.5rem; 
-        }
-        @media (max-width: 768px) {
-            .dashboard-header { 
-                padding: 15px; 
-            }
-            .dashboard-header h1 { 
-                font-size: 1.5rem; 
-            }
-            .dashboard-header p { 
-                font-size: 0.9rem; 
-            }
-            .stat-card .card-body h5 { 
-                font-size: 1rem; 
-            }
-            .stat-card .card-body h3 { 
-                font-size: 1.5rem; 
-            }
-            .chart-container { 
-                height: 250px; 
-            }
-            .form-control, .btn { 
-                font-size: 0.9rem; 
-            }
-            .table th, .table td { 
-                font-size: 0.85rem; 
-                padding: 0.5rem; 
-            }
-        }
-        @media (max-width: 576px) {
-            .dashboard-header h1 { 
-                font-size: 1.2rem; 
-            }
-            .stat-card { 
-                margin-bottom: 0.5rem; 
-            }
-            .chart-container { 
-                height: 200px; 
-            }
-            .btn-sm, .form-control-sm { 
-                font-size: 0.7rem; 
-                padding: 0.2rem 0.4rem; 
-            }
-        }
+        body { background-color: #f8f9fa; }
+        .dashboard-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; }
+        .stat-card { border: none; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        .chart-container { position: relative; height: 400px; margin-bottom: 20px; }
+        .navbar { background-color: #343a40 !important; }
     </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/admin">RailOne Admin</a>
+            <a class="navbar-brand" href="/master">RailOne Master</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="/admin">Dashboard</a>
+                        <a class="nav-link" href="/master">Dashboard</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/api/today_screenshots">Screenshots</a>
@@ -109,8 +37,8 @@
     </nav>
 
     <div class="dashboard-header">
-        <h1>RailOne Admin Dashboard</h1>
-        <p>Admin Overview</p>
+        <h1>RailOne Master Dashboard</h1>
+        <p>Master Overview</p>
     </div>
 
     <div class="container mt-4">
@@ -120,7 +48,15 @@
 
         <!-- Stats Cards Row -->
         <div class="row mb-4">
-            <div class="col-6 col-md-4 col-lg-3">
+            <div class="col-md-3">
+                <div class="card stat-card text-white bg-success">
+                    <div class="card-body">
+                        <h5>Admins</h5>
+                        <h3>{{ total_admins }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
                 <div class="card stat-card text-white bg-info">
                     <div class="card-body">
                         <h5>Supers</h5>
@@ -128,7 +64,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-6 col-md-4 col-lg-3">
+            <div class="col-md-3">
                 <div class="card stat-card text-white bg-warning">
                     <div class="card-body">
                         <h5>Sellers</h5>
@@ -136,19 +72,11 @@
                     </div>
                 </div>
             </div>
-            <div class="col-6 col-md-4 col-lg-3">
+            <div class="col-md-3">
                 <div class="card stat-card text-white bg-secondary">
                     <div class="card-body">
                         <h5>Licenses</h5>
                         <h3>{{ total_licenses }}</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg-3">
-                <div class="card stat-card text-white bg-danger">
-                    <div class="card-body">
-                        <h5>Paid</h5>
-                        <h3>{{ total_paid }}</h3>
                     </div>
                 </div>
             </div>
@@ -182,7 +110,7 @@
             <div class="col-md-6">
                 <div class="card stat-card">
                     <div class="card-header bg-success text-white">
-                        <h5>License Distribution by Super</h5>
+                        <h5>License Distribution by Admin</h5>
                     </div>
                     <div class="card-body">
                         <canvas id="pieChart"></canvas>
@@ -192,7 +120,7 @@
             <div class="col-md-6">
                 <div class="card stat-card">
                     <div class="card-header bg-warning text-white">
-                        <h5>Active Licenses by Super</h5>
+                        <h5>Active Licenses by Admin</h5>
                     </div>
                     <div class="card-body">
                         <canvas id="countryBarChart"></canvas>
@@ -201,13 +129,13 @@
             </div>
         </div>
 
-        <!-- Create New Super Form -->
+        <!-- Create New Admin Form -->
         <div class="row mt-4">
             <div class="col-md-6">
-                <h3>Create New Super</h3>
-                <form method="POST" action="/admin/create_super">
+                <h3>Create New Admin</h3>
+                <form method="POST" action="/master/create_admin">
                     <div class="mb-3">
-                        <input type="text" name="username" placeholder="Super Username" class="form-control" required>
+                        <input type="text" name="username" placeholder="Admin Username" class="form-control" required>
                     </div>
                     <div class="mb-3">
                         <input type="password" name="password" placeholder="Password" class="form-control" required>
@@ -215,19 +143,20 @@
                     <div class="mb-3">
                         <input type="number" name="rate" placeholder="Rate per Key (Rs)" class="form-control" required min="0">
                     </div>
-                    <button type="submit" class="btn btn-primary">Create Super</button>
+                    <button type="submit" class="btn btn-primary">Create Admin</button>
                 </form>
             </div>
         </div>
 
-        <!-- Manage Supers Table -->
-        <h3 class="mt-4">Manage Supers</h3>
+        <!-- Manage Admins Table -->
+        <h3 class="mt-4">Manage Admins</h3>
         <div class="table-responsive">
             <table class="table table-striped">
                 <thead class="table-dark">
                     <tr>
                         <th>Username</th>
                         <th>Status</th>
+                        <th>Supers</th>
                         <th>Sellers</th>
                         <th>Licenses</th>
                         <th>Paid</th>
@@ -238,34 +167,35 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for super in supers %}
+                    {% for admin in admins %}
                     <tr>
-                        <td>{{ super.username }}</td>
-                        <td><span class="badge {{ 'bg-success' if super.active else 'bg-danger' }}">{{ 'Active' if super.active else 'Inactive' }}</span></td>
-                        <td>{{ super_stats[super.username].num_sellers }}</td>
-                        <td>{{ super_stats[super.username].num_licenses }}</td>
-                        <td>{{ super_stats[super.username].paid_licenses }}</td>
-                        <td>Rs {{ super_stats[super.username].rate }}</td>
-                        <td>Rs {{ super_stats[super.username].due_amount }}</td>
-                        <td>{{ "%.1f"|format(super_stats[super.username].hours_left) if super_stats[super.username].hours_left else 'N/A' }} hrs</td>
+                        <td>{{ admin.username }}</td>
+                        <td><span class="badge {{ 'bg-success' if admin.active else 'bg-danger' }}">{{ 'Active' if admin.active else 'Inactive' }}</span></td>
+                        <td>{{ admin_stats[admin.username].num_supers }}</td>
+                        <td>{{ admin_stats[admin.username].num_sellers }}</td>
+                        <td>{{ admin_stats[admin.username].num_licenses }}</td>
+                        <td>{{ admin_stats[admin.username].paid_licenses }}</td>
+                        <td>Rs {{ admin_stats[admin.username].rate }}</td>
+                        <td>Rs {{ admin_stats[admin.username].due_amount }}</td>
+                        <td>{{ "%.1f"|format(admin_stats[admin.username].hours_left) if admin_stats[admin.username].hours_left else 'N/A' }} hrs</td>
                         <td>
-                            {% if super.active %}
-                                <a href="/admin/deactivate_super/{{ super.username }}" class="btn btn-warning btn-sm" onclick="return confirm('Deactivate?')">Deactivate</a>
+                            {% if admin.active %}
+                                <a href="/master/deactivate_admin/{{ admin.username }}" class="btn btn-warning btn-sm" onclick="return confirm('Deactivate?')">Deactivate</a>
                             {% else %}
-                                <a href="/admin/activate_super/{{ super.username }}" class="btn btn-success btn-sm">Activate</a>
+                                <a href="/master/activate_admin/{{ admin.username }}" class="btn btn-success btn-sm">Activate</a>
                             {% endif %}
-                            <a href="/admin/delete_super/{{ super.username }}" class="btn btn-danger btn-sm" onclick="return confirm('Delete?')">Delete</a>
-                            <form method="POST" action="/admin/change_password/{{ super.username }}" style="display: inline-block; margin-left: 5px;">
+                            <a href="/master/delete_admin/{{ admin.username }}" class="btn btn-danger btn-sm" onclick="return confirm('Delete?')">Delete</a>
+                            <form method="POST" action="/master/change_password/{{ admin.username }}" style="display: inline-block; margin-left: 5px;">
                                 <input type="password" name="new_password" placeholder="New Pass" class="form-control form-control-sm d-inline-block w-auto" required>
                                 <button type="submit" class="btn btn-info btn-sm">Change Pass</button>
                             </form>
-                            <form method="POST" action="/admin/update_rate/{{ super.username }}" style="display: inline-block; margin-left: 5px;">
+                            <form method="POST" action="/master/update_rate/{{ admin.username }}" style="display: inline-block; margin-left: 5px;">
                                 <input type="number" name="new_rate" placeholder="New Rate" class="form-control form-control-sm d-inline-block w-auto" required min="0">
                                 <button type="submit" class="btn btn-secondary btn-sm">Update Rate</button>
                             </form>
-                            <a href="/admin/view_super/{{ super.username }}" class="btn btn-info btn-sm">View</a>
-                            {% if super_stats[super.username].pending_billable > 0 %}
-                                <form method="POST" action="/admin/accept_due/{{ super.username }}" style="display: inline-block; margin-left: 5px;" onclick="return confirm('Accept Due?')">
+                            <a href="/master/view_admin/{{ admin.username }}" class="btn btn-info btn-sm">View</a>
+                            {% if admin_stats[admin.username].pending_billable > 0 %}
+                                <form method="POST" action="/master/accept_due/{{ admin.username }}" style="display: inline-block; margin-left: 5px;" onclick="return confirm('Accept Due?')">
                                     <button type="submit" class="btn btn-success btn-sm">Accept Due</button>
                                 </form>
                             {% endif %}
@@ -284,18 +214,14 @@
         new Chart(ctx1, {
             type: 'bar',
             data: {
-                labels: ['Supers', 'Sellers', 'Licenses'],
+                labels: ['Admins', 'Supers', 'Sellers', 'Licenses'],
                 datasets: [{
                     label: 'Quantity',
-                    data: [{{ total_supers }}, {{ total_sellers }}, {{ total_licenses }}],
-                    backgroundColor: ['rgba(255, 206, 86, 0.8)', 'rgba(153, 102, 255, 0.8)', 'rgba(54, 162, 235, 0.8)']
+                    data: [{{ total_admins }}, {{ total_supers }}, {{ total_sellers }}, {{ total_licenses }}],
+                    backgroundColor: ['rgba(75, 192, 192, 0.8)', 'rgba(255, 206, 86, 0.8)', 'rgba(153, 102, 255, 0.8)', 'rgba(54, 162, 235, 0.8)']
                 }]
             },
-            options: { 
-                scales: { y: { beginAtZero: true } },
-                responsive: true,
-                maintainAspectRatio: false
-            }
+            options: { scales: { y: { beginAtZero: true } } }
         });
 
         // Line Chart: Licenses & Paid Over Time
@@ -316,21 +242,17 @@
                     tension: 0.1
                 }]
             },
-            options: { 
-                scales: { y: { beginAtZero: true } },
-                responsive: true,
-                maintainAspectRatio: false
-            }
+            options: { scales: { y: { beginAtZero: true } } }
         });
 
-        // Pie Chart: License Distribution by Super
+        // Pie Chart: License Distribution by Admin
         const ctx3 = document.getElementById('pieChart').getContext('2d');
         new Chart(ctx3, {
             type: 'pie',
             data: {
-                labels: [{% for super in supers %}'{{ super.username }}', {% endfor %}],
+                labels: [{% for admin in admins %}'{{ admin.username }}', {% endfor %}],
                 datasets: [{
-                    data: [{% for super in supers %}{{ super_stats[super.username].num_licenses }}, {% endfor %}],
+                    data: [{% for admin in admins %}{{ admin_stats[admin.username].num_licenses }}, {% endfor %}],
                     backgroundColor: [
                         'rgba(255, 99, 132, 0.8)',
                         'rgba(75, 192, 192, 0.8)',
@@ -339,30 +261,22 @@
                         'rgba(54, 162, 235, 0.8)'
                     ]
                 }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false
             }
         });
 
-        // Bar Chart: Active Licenses by Super
+        // Bar Chart: Active Licenses by Admin
         const ctx4 = document.getElementById('countryBarChart').getContext('2d');
         new Chart(ctx4, {
             type: 'bar',
             data: {
-                labels: [{% for super in supers %}'{{ super.username }}', {% endfor %}],
+                labels: [{% for admin in admins %}'{{ admin.username }}', {% endfor %}],
                 datasets: [{
                     label: 'Active Licenses',
-                    data: [{% for super in supers %}{{ super_stats[super.username].num_licenses }}, {% endfor %}],
+                    data: [{% for admin in admins %}{{ admin_stats[admin.username].num_licenses }}, {% endfor %}],
                     backgroundColor: 'rgba(153, 102, 255, 0.8)'
                 }]
             },
-            options: { 
-                scales: { y: { beginAtZero: true } },
-                responsive: true,
-                maintainAspectRatio: false
-            }
+            options: { scales: { y: { beginAtZero: true } } }
         });
     </script>
 </body>

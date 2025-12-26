@@ -1,18 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>Seller Panel</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link 
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" 
-      rel="stylesheet" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RailOne Seller Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
             background-color: #e9f0ff;
+            font-family: Arial, sans-serif;
         }
         .panel {
-            max-width: 800px;
+            max-width: 900px;
             margin: auto;
             margin-top: 30px;
             padding: 25px;
@@ -35,11 +34,14 @@
             font-family: monospace;
             letter-spacing: 2px;
             flex: 1;
+            font-size: 1rem;
         }
         .btn-group button,
         .btn-group a {
             margin-left: 5px;
             margin-top: 6px;
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
         }
         .search-box {
             margin-bottom: 15px;
@@ -52,6 +54,59 @@
             margin-bottom: 20px;
             font-weight: 600;
             color: #333;
+            text-align: center;
+        }
+        .stat-box {
+            background: #e7fdf1;
+            padding: 10px;
+            border-left: 5px solid #28a745;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-weight: 500;
+            color: #333;
+            text-align: center;
+        }
+        @media (max-width: 768px) {
+            .panel {
+                padding: 20px;
+                margin: 20px;
+            }
+            .license-key {
+                font-size: 0.9rem;
+            }
+            .btn-group button,
+            .btn-group a {
+                font-size: 0.7rem;
+                padding: 0.2rem 0.4rem;
+            }
+            .form-control {
+                font-size: 0.9rem;
+            }
+            .token-box, .stat-box {
+                font-size: 0.9rem;
+                padding: 10px;
+            }
+        }
+        @media (max-width: 576px) {
+            .license-card {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .btn-group {
+                width: 100%;
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: flex-start;
+            }
+            .btn-group button,
+            .btn-group a {
+                margin-top: 5px;
+                margin-right: 5px;
+                flex: 1 1 auto;
+            }
+            .search-box {
+                font-size: 0.8rem;
+            }
         }
     </style>
 </head>
@@ -64,8 +119,13 @@
         {% endif %}
 
         <!-- Token Due Box -->
-        <div class="token-box text-center">
-            🔔 Total Tokens Due: {{ licenses|selectattr('paid')|select|list|length }}
+        <div class="token-box">
+            🔔 Total Due: Rs {{ due_amount }}
+        </div>
+
+        <!-- Stat Box for Total Keys -->
+        <div class="stat-box">
+            📊 Total Keys: {{ total_licenses }}
         </div>
 
         <!-- Create License -->
@@ -73,6 +133,10 @@
             <div class="mb-3">
                 <label for="license_key" class="form-label">Enter License Key</label>
                 <input type="text" name="license_key" id="license_key" class="form-control" placeholder="e.g. ASHOK353" required pattern="[A-Za-z0-9]{4,20}" title="4-20 characters, letters and numbers only" />
+            </div>
+            <div class="mb-3">
+                <label for="rate" class="form-label">Rate (Rs/Key)</label>
+                <input type="number" name="rate" id="rate" class="form-control" placeholder="e.g. 100" required min="0" />
             </div>
             <button type="submit" class="btn btn-success w-100">Create New License</button>
         </form>
@@ -86,24 +150,18 @@
         {% else %}
             {% for lic in licenses %}
             <div class="license-card" data-key="{{ lic.key }}">
-                <div class="license-key">{{ lic.key }}</div>
+                <div class="license-key">{{ lic.key }} (Rs {{ lic.rate }})</div>
                 <div class="btn-group">
-                    {% if not lic.paid %}
-                        <a href="/seller/mark_paid/{{ lic.key }}" class="btn btn-outline-primary btn-sm">Mark as Paid</a>
-                        <a href="/seller/delete_license/{{ lic.key }}" class="btn btn-danger btn-sm">Delete</a>
-                    {% else %}
-                        <a href="/seller/reset_license/{{ lic.key }}" class="btn btn-warning btn-sm">Reset</a>
-
-                        {% if lic.active %}
-                            <a href="/seller/deactivate_license/{{ lic.key }}" class="btn btn-outline-danger btn-sm">Deactivate</a>
-                        {% else %}
-                            <a href="/seller/activate_license/{{ lic.key }}" class="btn btn-outline-success btn-sm">Activate</a>
-                        {% endif %}
-                    {% endif %}
-
                     {% if lic.expiry and lic.expiry < now.strftime('%Y-%m-%d') %}
                         <a href="/seller/renew_license/{{ lic.key }}" class="btn btn-info btn-sm">Renew</a>
                     {% endif %}
+                    {% if lic.active %}
+                        <a href="/seller/deactivate_license/{{ lic.key }}" class="btn btn-outline-danger btn-sm">Deactivate</a>
+                    {% else %}
+                        <a href="/seller/activate_license/{{ lic.key }}" class="btn btn-outline-success btn-sm">Activate</a>
+                    {% endif %}
+                    <a href="/seller/reset_license/{{ lic.key }}" class="btn btn-warning btn-sm">Reset</a>
+                    <a href="/seller/delete_license/{{ lic.key }}" class="btn btn-danger btn-sm">Delete</a>
                 </div>
             </div>
             {% endfor %}

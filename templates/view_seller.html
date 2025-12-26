@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>View Seller - {{ seller_username }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .dashboard-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; }
+        .navbar { background-color: #343a40 !important; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/super">RailOne Super</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/super">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/api/today_screenshots">Screenshots</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/logout">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="dashboard-header">
+        <h1>View Seller: {{ seller_username }}</h1>
+    </div>
+
+    <div class="container mt-4">
+        <h3>Licenses under {{ seller_username }}</h3>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>License Key</th>
+                        <th>Status</th>
+                        <th>Paid</th>
+                        <th>Expiry</th>
+                        <th>MAC Address</th>
+                        <th>Rate (Rs/Key)</th>
+                        <th>Renew Count</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for license in licenses %}
+                    <tr>
+                        <td>{{ license.key }}</td>
+                        <td><span class="badge {{ 'bg-success' if license.active else 'bg-danger' }}">{{ 'Active' if license.active else 'Inactive' }}</span></td>
+                        <td><span class="badge {{ 'bg-success' if license.paid else 'bg-warning' }}">{{ 'Paid' if license.paid else 'Unpaid' }}</span></td>
+                        <td>{{ license.expiry }}</td>
+                        <td>{{ license.mac or 'Not Bound' }}</td>
+                        <td>Rs {{ license.rate }}</td>
+                        <td>{{ license.renew_count }}</td>
+                        <td>
+                            {% if license.active %}
+                                <a href="/seller/deactivate_license/{{ license.key }}" class="btn btn-warning btn-sm" onclick="return confirm('Deactivate?')">Deactivate</a>
+                            {% else %}
+                                <a href="/seller/activate_license/{{ license.key }}" class="btn btn-success btn-sm">Activate</a>
+                            {% endif %}
+                            <a href="/seller/delete_license/{{ license.key }}" class="btn btn-danger btn-sm" onclick="return confirm('Delete?')">Delete</a>
+                            <a href="/seller/reset_license/{{ license.key }}" class="btn btn-info btn-sm" onclick="return confirm('Reset MAC?')">Reset</a>
+                            
+                            <!-- Sahi "Mark Paid" button – super route use kar raha hai -->
+                            {% if not license.paid %}
+                                <a href="{{ url_for('mark_license_paid', key=license.key) }}" 
+                                   class="btn btn-success btn-sm" 
+                                   onclick="return confirm('Mark this license as paid?');">
+                                    Mark Paid
+                                </a>
+                            {% else %}
+                                <span class="badge bg-success">Paid</span>
+                            {% endif %}
+                            
+                            <a href="/seller/renew_license/{{ license.key }}" class="btn btn-primary btn-sm" onclick="return confirm('Renew?')">Renew</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

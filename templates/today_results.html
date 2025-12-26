@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Today's Screenshots</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        body {
+            background-color: #CBFF4D;
+            font-family: Arial, sans-serif;
+        }
+        .panel {
+            max-width: 90%;
+            margin: auto;
+            margin-top: 30px;
+            padding: 25px;
+            background: #93c395ff;
+            border-radius: 15px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 24px;
+            color: #fff;
+            background: #dc3545;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .close-btn:hover {
+            background: #c82333;
+        }
+        .screenshot-card {
+            margin-bottom: 20px;
+        }
+        .screenshot-card img {
+            max-height: 300px;
+            object-fit: contain;
+            border: 2px solid #CBFF4D;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="panel">
+        <button class="close-btn" onclick="window.close()">×</button>
+        <h3 class="text-center mb-4">📸 Today's Screenshots</h3>
+        <div id="screenshotsList" class="row"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        fetch('/api/today_screenshots')
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('screenshotsList');
+                if (data.success) {
+                    if (data.screenshots.length === 0) {
+                        container.innerHTML = '<p class="text-center text-muted">No screenshots uploaded today.</p>';
+                    } else {
+                        data.screenshots.forEach(screenshot => {
+                            const col = document.createElement('div');
+                            col.className = 'col-md-4 screenshot-card';
+                            col.innerHTML = `
+                                <div class="card">
+                                    <img src="${screenshot.image_url}" class="card-img-top" alt="Screenshot">
+                                    <div class="card-body">
+                                        <h6 class="card-title">${screenshot.filename}</h6>
+                                        <p class="card-text">Uploaded: ${screenshot.upload_time}</p>
+                                    </div>
+                                </div>
+                            `;
+                            container.appendChild(col);
+                        });
+                    }
+                } else {
+                    container.innerHTML = `<p class="text-center text-danger">${data.message}</p>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('screenshotsList').innerHTML = '<p class="text-center text-danger">Failed to load screenshots.</p>';
+            });
+    </script>
+</body>
+</html>
